@@ -23,7 +23,7 @@ on:
       variants:
         description: "Varianten für sdk/ndk/cmake, durch Komma getrennt"
         required: true
-        default: "aarch64-linux-android"
+        default: "aarch64-linux-android,armv7a-linux-androideabi"
         type: string
       aide_variants:
         description: "Varianten für aide (androidide-tools)"
@@ -71,7 +71,7 @@ jobs:
           # Bei schedule sind inputs leer -> Standardwerte des Scripts bzw. echter Lauf
           COMPONENTS: ${{ inputs.components || 'sdk,ndk,cmake,aide,lzhi' }}
           VERSIONS: ${{ inputs.versions }}
-          VARIANTS: ${{ inputs.variants || 'aarch64-linux-android' }}
+          VARIANTS: ${{ inputs.variants || 'aarch64-linux-android,armv7a-linux-androideabi' }}
           AIDE_VARIANTS: ${{ inputs.aide_variants || 'aarch64,arm' }}
           LZ_VARIANTS: ${{ inputs.lzhi_variants || 'aarch64,arm' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
