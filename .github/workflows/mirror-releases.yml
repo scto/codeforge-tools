@@ -1,4 +1,4 @@
-name: Mirror HomuHomu833 Releases
+name: Mirror HomuHomu833/android-sdk-custom/ AndroidIDEOfficial/androidide-tools/ Lzhiyong/android-sdk-tools/ Releases
 
 # Spiegelt Android-Toolchains als Release-Assets in dieses Repo:
 #   sdk, ndk, cmake  HomuHomu833/android-sdk-custom, android-ndk-custom, cmake-custom
