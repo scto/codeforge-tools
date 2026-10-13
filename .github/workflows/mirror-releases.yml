@@ -35,6 +35,11 @@ on:
         required: true
         default: "aarch64,arm"
         type: string
+      include_prerelease:
+        description: "Auch Beta-/RC-Releases spiegeln (Standard: nein)"
+        required: true
+        default: false
+        type: boolean
       dry_run:
         description: "Nur anzeigen, nichts anlegen oder hochladen"
         required: true
@@ -76,4 +81,5 @@ jobs:
           LZ_VARIANTS: ${{ inputs.lzhi_variants || 'aarch64,arm' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
+          INCLUDE_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.include_prerelease || 'false' }}
         run: bash scripts/mirror-releases.sh
