@@ -11,7 +11,7 @@
 #   lzhiyong-sdk-tools-<Tag>    (Lzhiyong/android-sdk-tools,      z. B. lzhiyong-sdk-tools-35.0.2)
 # Assets behalten ihren Namen; zu jedem Asset kommt eine <Name>.sha256-Datei.
 # Gespiegelt werden nur Assets der gewünschten Varianten, nicht die ~100 Varianten je Release
-# (FreeBSD, Windows …). Standard: sdk/ndk/cmake = aarch64-linux-android; aide/lzhi = aarch64,arm.
+# (FreeBSD, Windows …). Standard: sdk/ndk/cmake = aarch64-linux-android,armv7a-linux-androideabi; aide/lzhi = aarch64,arm.
 #
 # Läuft idempotent: Vorhandene Assets werden übersprungen (FORCE=true lädt sie neu hoch),
 # ein abgebrochener Lauf kann einfach wiederholt werden.
@@ -21,7 +21,7 @@
 #   TARGET_REPO  owner/repo, in das gespiegelt wird
 #   COMPONENTS   sdk,ndk,cmake,aide,lzhi       (Standard: alle)
 #   VERSIONS     Release-Namen/Tags, Komma-getrennt; leer = alle
-#   VARIANTS     nur sdk/ndk/cmake, z. B. aarch64-linux-android,armv7a-linux-androideabi
+#   VARIANTS     nur sdk/ndk/cmake, z. B. aarch64-linux-android,armv7a-linux-androideabi (Standard aarch64-linux-android,armv7a-linux-androideabi)
 #   AIDE_VARIANTS  nur aide (Standard aarch64,arm)
 #   LZ_VARIANTS    nur lzhi (Standard aarch64,arm)
 #   DRY_RUN      true = nur anzeigen, nichts anlegen oder hochladen
@@ -33,7 +33,7 @@ set -euo pipefail
 : "${TARGET_REPO:?TARGET_REPO fehlt (owner/repo)}"
 COMPONENTS="${COMPONENTS:-sdk,ndk,cmake,aide,lzhi}"
 VERSIONS="${VERSIONS:-}"
-VARIANTS="${VARIANTS:-aarch64-linux-android}"
+VARIANTS="${VARIANTS:-aarch64-linux-android,armv7a-linux-androideabi}"
 AIDE_VARIANTS="${AIDE_VARIANTS:-aarch64,arm}"
 LZ_VARIANTS="${LZ_VARIANTS:-aarch64,arm}"
 DRY_RUN="${DRY_RUN:-false}"
