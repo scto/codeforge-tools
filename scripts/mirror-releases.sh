@@ -21,11 +21,16 @@
 #   TARGET_REPO  owner/repo, in das gespiegelt wird
 #   COMPONENTS   sdk,ndk,cmake,aide,lzhi       (Standard: alle)
 #   VERSIONS     Release-Namen/Tags, Komma-getrennt; leer = alle
-#   VARIANTS     nur sdk/ndk/cmake, z. B. aarch64-linux-android,armv7a-linux-androideabi (Standard aarch64-linux-android,armv7a-linux-androideabi)
+#   VARIANTS     nur sdk/ndk/cmake (Standard aarch64-linux-android,armv7a-linux-androideabi)
+#                Upstream-Namen: android-sdk-<variante>.tar.xz, android-ndk-<name>-<variante>.tar.xz,
+#                cmake-<variante>.tar.xz (CMake-Assets tragen keine Versionsnummer im Dateinamen)
 #   AIDE_VARIANTS  nur aide (Standard aarch64,arm)
 #   LZ_VARIANTS    nur lzhi (Standard aarch64,arm)
 #   DRY_RUN      true = nur anzeigen, nichts anlegen oder hochladen
 #   FORCE        true = vorhandene Assets neu hochladen
+#   INCLUDE_PRERELEASE  true = auch Beta-/RC-Releases spiegeln (Standard: false).
+#                Übersprungen wird, wenn Release-Name oder Upstream-Tag "beta" oder "rc"
+#                als eigenes Wort enthält (r30-beta2, 4.0.0-rc1, beta-1; nicht src/arc).
 # =============================================================================
 set -euo pipefail
 
@@ -38,6 +43,7 @@ AIDE_VARIANTS="${AIDE_VARIANTS:-aarch64,arm}"
 LZ_VARIANTS="${LZ_VARIANTS:-aarch64,arm}"
 DRY_RUN="${DRY_RUN:-false}"
 FORCE="${FORCE:-false}"
+INCLUDE_PRERELEASE="${INCLUDE_PRERELEASE:-false}"
 MAX_ASSET_MB="${MAX_ASSET_MB:-2000}"            # GitHub erlaubt höchstens 2 GiB je Asset
 WORK="${RUNNER_TEMP:-/tmp}/mirror-work"
 
@@ -51,7 +57,7 @@ for b in VARIANTS AIDE_VARIANTS LZ_VARIANTS; do
   [[ "${!b}" =~ ^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$ ]] || die "Ungültige $b"
 done
 [[ "$MAX_ASSET_MB" =~ ^[0-9]+$ ]] || die "Ungültiges MAX_ASSET_MB"
-for b in DRY_RUN FORCE; do [[ "${!b}" == true || "${!b}" == false ]] || die "$b muss true oder false sein"; done
+for b in DRY_RUN FORCE INCLUDE_PRERELEASE; do [[ "${!b}" == true || "${!b}" == false ]] || die "$b muss true oder false sein"; done
 
 declare -A UPSTREAM=( [sdk]=HomuHomu833/android-sdk-custom [ndk]=HomuHomu833/android-ndk-custom [cmake]=HomuHomu833/cmake-custom
                       [aide]=AndroidIDEOfficial/androidide-tools [lzhi]=Lzhiyong/android-sdk-tools )
@@ -73,6 +79,10 @@ asset_re() {
   esac
 }
 max_bytes=$(( MAX_ASSET_MB * 1024 * 1024 ))
+
+# "beta"/"rc" nur als eigenes Wort (Buchstaben davor/danach ausgeschlossen), Groß-/Kleinschreibung egal
+SKIP_RE='(^|[^a-z])(beta|rc)([^a-z]|$)'
+[[ "$INCLUDE_PRERELEASE" == true ]] && SKIP_RE=""
 
 mkdir -p "$WORK"
 n_rel_new=0; n_up=0; n_skip=0; n_fail=0
@@ -128,11 +138,14 @@ for comp in ${COMPONENTS//,/ }; do
     || die "Releases von $repo nicht abrufbar"
   total=$(jq length <<<"$releases")
   echo "Upstream-Releases: $total, Varianten: $vlabel"
-  c_rel=0; c_none=0
+  c_rel=0; c_none=0; c_pre=0
 
   while IFS= read -r rel; do
     name=$(jq -r .name <<<"$rel"); utag=$(jq -r .tag <<<"$rel")
     want_version "$name" "$utag" || continue
+    if [[ "$(jq -r .skip <<<"$rel")" == true ]]; then
+      echo "– $name: Beta/RC, übersprungen (INCLUDE_PRERELEASE=true schaltet das ab)"; c_pre=$((c_pre + 1)); continue
+    fi
     nassets=$(jq '.assets | length' <<<"$rel")
     if (( nassets == 0 )); then
       echo "– $name: kein Asset mit Variante $vlabel, übersprungen (Upstream-Assets: $(jq -r .total <<<"$rel"))"
@@ -167,14 +180,15 @@ Lizenz und Herkunft siehe Upstream-Repo https://github.com/$repo."
       fi
       mirror_asset "$comp" "$repo" "$utag" "$ttag" "$aname" "$asize" "$adigest"
     done < <(jq -c '.assets[]' <<<"$rel")
-  done < <(jq -c --arg re "$asset_regex" --arg tre "$tag_regex" --arg by "${NAMEFROM[$comp]}" '
+  done < <(jq -c --arg re "$asset_regex" --arg tre "$tag_regex" --arg by "${NAMEFROM[$comp]}" --arg skip "$SKIP_RE" '
       .[] | select(.draft | not) | select(.tag_name | test($tre))
       | { name: (if $by == "tag" or (.name // "") == "" then .tag_name else .name end), tag: .tag_name, pre: .prerelease,
           date: .published_at, url: .html_url, total: (.assets | length),
+          skip: ($skip != "" and ([(.name // ""), .tag_name] | map(test($skip; "i")) | any)),
           similar: [ .assets[] | select(.name | test("aarch64|android"; "i")) | select(.name | test($re) | not) | .name ][0:8],
           assets: [ .assets[] | select(.name | test($re)) | { name, size, digest: (.digest // "") } ] }' <<<"$releases")
 
-  summary+=("| $comp | $total | $c_rel | $c_none |")
+  summary+=("| $comp | $total | $c_rel | $c_none | $c_pre |")
   echo "::endgroup::"
 done
 
@@ -182,10 +196,10 @@ echo "Neu angelegte Releases: $n_rel_new · hochgeladene Assets: $n_up · übers
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   {
     echo "## Spiegelung HomuHomu833 → $TARGET_REPO"
-    echo "Varianten (sdk/ndk/cmake): \`$VARIANTS\` · aide/lzhi: \`$AIDE_VARIANTS\` / \`$LZ_VARIANTS\` · Trockenlauf: $DRY_RUN · Neu laden: $FORCE"
+    echo "Varianten (sdk/ndk/cmake): \`$VARIANTS\` · aide/lzhi: \`$AIDE_VARIANTS\` / \`$LZ_VARIANTS\` · Trockenlauf: $DRY_RUN · Neu laden: $FORCE · Beta/RC mitnehmen: $INCLUDE_PRERELEASE"
     echo
-    echo "| Komponente | Upstream-Releases | verarbeitet | ohne passendes Asset |"
-    echo "|---|---|---|---|"
+    echo "| Komponente | Upstream-Releases | verarbeitet | ohne passendes Asset | Beta/RC übersprungen |"
+    echo "|---|---|---|---|---|"
     printf '%s\n' "${summary[@]}"
     echo
     echo "Neue Releases: **$n_rel_new** · hochgeladene Assets: **$n_up** · übersprungen: **$n_skip** · Fehler: **$n_fail**"
