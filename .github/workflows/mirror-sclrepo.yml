@@ -1,0 +1,45 @@
+name: Mirror nullij/sclrepo Releases
+
+# Spiegelt ausgewählte Release-Tags aus nullij/sclrepo (android-sdk-37.0.0, flutter-sdk, kotlinlsp, v36.1.0)
+# mit gleichem Tag in dieses Repo und legt je Datei eine .sha256 an. Nur manuell; Standard ist dry_run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: "Tags aus nullij/sclrepo, durch Komma getrennt"
+        required: true
+        default: "android-sdk-37.0.0,flutter-sdk,kotlinlsp,v36.1.0"
+        type: string
+      dry_run:
+        description: "Nur anzeigen, nichts anlegen oder hochladen"
+        required: true
+        default: true
+        type: boolean
+      force:
+        description: "Vorhandene Assets neu hochladen"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-sclrepo
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: Spiegeln
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPO: ${{ github.repository }}
+          TAGS: ${{ inputs.tags }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          FORCE: ${{ inputs.force }}
+        run: bash scripts/mirror-sclrepo.sh
