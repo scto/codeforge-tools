@@ -3,7 +3,7 @@ name: Mirror HomuHomu833/android-sdk-custom/ AndroidIDEOfficial/androidide-tools
 # Spiegelt Android-Toolchains als Release-Assets in dieses Repo:
 #   sdk, ndk, cmake  HomuHomu833/android-sdk-custom, android-ndk-custom, cmake-custom
 #   aide             AndroidIDEOfficial/androidide-tools (Build-/Platform-Tools 33.x/34.x, statisch)
-#   lzhi             Lzhiyong/android-sdk-tools (35.0.2 u. a., statisch, nur Binaries)
+#   lzhi             Lzhiyong/android-sdk-tools (nur Binaries; nicht mehr Standard, durch msmt ersetzt)
 #   msmt             msmt2018/android-sdk-tools (platform-tools-<V>: vollständige build-/platform-tools je ABI, mit Jars)
 # Läuft manuell und wöchentlich (neue Upstream-Versionen). Danach wird catalog.json neu erzeugt (schneller SDK-Manager).
 # Idempotent: vorhandene Assets werden übersprungen, ein abgebrochener Lauf kann wiederholt werden.
@@ -15,7 +15,7 @@ on:
       components:
         description: "Komponenten, durch Komma getrennt (sdk, ndk, cmake, aide, lzhi, msmt)"
         required: true
-        default: "sdk,ndk,cmake,aide,lzhi,msmt"
+        default: "sdk,ndk,cmake,aide,msmt"
         type: string
       versions:
         description: "Nur diese Release-Namen/Tags, durch Komma getrennt (leer = alle), z. B. r29,3.22.1,37.0.0"
@@ -81,7 +81,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_REPO: ${{ github.repository }}
           # Bei schedule sind inputs leer -> Standardwerte des Scripts bzw. echter Lauf
-          COMPONENTS: ${{ inputs.components || 'sdk,ndk,cmake,aide,lzhi,msmt' }}
+          COMPONENTS: ${{ inputs.components || 'sdk,ndk,cmake,aide,msmt' }}
           VERSIONS: ${{ inputs.versions }}
           VARIANTS: ${{ inputs.variants || 'aarch64-linux-android,armv7a-linux-androideabi' }}
           AIDE_VARIANTS: ${{ inputs.aide_variants || 'aarch64,arm' }}

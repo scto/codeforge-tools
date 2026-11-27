@@ -37,7 +37,8 @@ set -euo pipefail
 
 : "${GH_TOKEN:?GH_TOKEN fehlt}"
 : "${TARGET_REPO:?TARGET_REPO fehlt (owner/repo)}"
-COMPONENTS="${COMPONENTS:-sdk,ndk,cmake,aide,lzhi,msmt}"
+# lzhi ist nicht mehr Standard: msmt bringt dieselben Versionen vollständig (mit Jars); nur noch manuell wählbar.
+COMPONENTS="${COMPONENTS:-sdk,ndk,cmake,aide,msmt}"
 VERSIONS="${VERSIONS:-}"
 VARIANTS="${VARIANTS:-aarch64-linux-android,armv7a-linux-androideabi}"
 AIDE_VARIANTS="${AIDE_VARIANTS:-aarch64,arm}"

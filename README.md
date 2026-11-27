@@ -26,7 +26,7 @@ Ein Workflow holt alle passenden Releases der Upstream-Repos und legt sie in die
 | `ndk` | [HomuHomu833/android-ndk-custom](https://github.com/HomuHomu833/android-ndk-custom) | `android-ndk-<Name>` (z. B. `android-ndk-r29`) | `android-ndk-<Name>-aarch64-linux-android.tar.xz` |
 | `cmake` | [HomuHomu833/cmake-custom](https://github.com/HomuHomu833/cmake-custom) | `cmake-<Version>` (z. B. `cmake-3.22.1`) | `cmake-aarch64-linux-android.tar.xz` |
 | `aide` | [AndroidIDEOfficial/androidide-tools](https://github.com/AndroidIDEOfficial/androidide-tools) (archiviert) | `androidide-tools-v<Version>` (33.0.1 … 34.0.4) | `build-tools-<V>-{aarch64,arm}.tar.xz`, `platform-tools-<V>-{aarch64,arm}.tar.xz` |
-| `lzhi` | [Lzhiyong/android-sdk-tools](https://github.com/Lzhiyong/android-sdk-tools) | `lzhiyong-sdk-tools-<Version>` (z. B. `…-35.0.2`) | `android-sdk-tools-static-{aarch64,arm}.zip` |
+| `lzhi` | [Lzhiyong/android-sdk-tools](https://github.com/Lzhiyong/android-sdk-tools) | `lzhiyong-sdk-tools-<Version>` – **nicht mehr gespiegelt** (nur noch manuell wählbar) | `android-sdk-tools-static-{aarch64,arm}.zip` |
 | `msmt` | [msmt2018/android-sdk-tools](https://github.com/msmt2018/android-sdk-tools) | `msmt-platform-tools-<Version>` (28.0.0 … 37.0.3) | `build-tools-<V>-{arm64-v8a,armeabi-v7a}.zip`, `platform-tools-<V>-{arm64-v8a,armeabi-v7a}.tar.gz` |
 
 Asset-Namen bleiben unverändert. Zu jedem Asset liegt eine `<Name>.sha256` im selben Release.
@@ -36,7 +36,7 @@ Was die Quellen enthalten (anhand der READMEs, Build-Workflows und je einer Stic
 - **sdk:** Android-Variante (Bionic) gibt es erst ab SDK 36.0.2. Die Releases 35.0.2 und 36.0.0 haben nur musl-Builds (`*-linux-musl`) und werden deshalb übersprungen.
 - **ndk, cmake:** Namen und Aufbau der Archive nicht im Detail geprüft.
 - **aide:** Stichprobe `v34.0.4`/aarch64: statisch gelinkte Bionic-Binaries samt `d8`, `apksigner` und `lib/`. Gespiegelt werden nur Tags der Form `v<Zahl>`; die Releases `sdk` und `jdk-11` des Repos nicht.
-- **lzhi:** Stichprobe `35.0.2`/aarch64: statisch gelinkte Bionic-Binaries (`aapt`, `aapt2`, `aidl`, `zipalign`, `adb`, `fastboot` …), aber **ohne** `.jar`-Dateien und ohne `source.properties`. Kein vollständiges SDK-Paket; laut Upstream ist nur aarch64 getestet.
+- **lzhi:** Stichprobe `35.0.2`/aarch64: statisch gelinkte Bionic-Binaries (`aapt`, `aapt2`, `aidl`, `zipalign`, `adb`, `fastboot` …), aber **ohne** `.jar`-Dateien und ohne `source.properties`. Kein vollständiges SDK-Paket; laut Upstream ist nur aarch64 getestet. **Seit 2026-11-27 nicht mehr Standard und die Releases gelöscht** – `msmt` liefert dieselben Versionen vollständig.
 - **msmt:** Fork von Lzhiyong. Die Releases `platform-tools-<V>` sind **vollständige** Google-Pakete: offizielle build-tools/platform-tools (mit `lib/d8.jar`, `apksigner.jar`, `core-lambda-stubs.jar` …), die nativen Programme (`aapt`, `aapt2`, `aidl`, `zipalign`, `dexdump`, `adb`, `fastboot` …) durch statisch gebaute Bionic-Binaries ersetzt (`scripts/package_sdk.py` im Upstream). Gespiegelt werden nur diese Releases und nur `arm64-v8a`/`armeabi-v7a` (x86/x86_64 gibt es upstream auch: Eingabe `msmt_variants`). `33.0.3`/`34.0.3`/`35.0.2` (Lzhiyong-Kopien) und `sdk-tools-36.1.0` (liegt schon als `v36.1.0` vor) werden übersprungen. Lizenz: Apache 2.0.
 - **Nicht aufgenommen:** Repos mit glibc-Binaries (z. B. `nullij/sclrepo`, `soobujmiah/adt`). Sie laufen in Termux nicht nativ.
 
@@ -104,7 +104,7 @@ Montags um 03:17 UTC läuft der Workflow automatisch als **echter** Lauf mit den
 
 | Eingabe | Standard | Bedeutung |
 |---|---|---|
-| `components` | `sdk,ndk,cmake,aide,lzhi` | Welche Quellen gespiegelt werden |
+| `components` | `sdk,ndk,cmake,aide,msmt` | Welche Quellen gespiegelt werden |
 | `versions` | leer (alle) | Nur diese Release-Namen oder Upstream-Tags, Komma-getrennt, z. B. `r29,3.22.1,37.0.0` |
 | `variants` | `aarch64-linux-android` | Varianten für `sdk`/`ndk`/`cmake`, z. B. zusätzlich `armv7a-linux-androideabi` |
 | `aide_variants` | `aarch64,arm` | Varianten für `aide` |
@@ -144,7 +144,6 @@ Typische Pfade:
 | CMake 3.22.1 | `cmake-3.22.1` | `cmake-aarch64-linux-android.tar.xz` |
 | Build-Tools 34.0.4 (aide) | `androidide-tools-v34.0.4` | `build-tools-34.0.4-aarch64.tar.xz` |
 | Platform-Tools 34.0.4 (aide) | `androidide-tools-v34.0.4` | `platform-tools-34.0.4-aarch64.tar.xz` |
-| Build-/Platform-Tools 35.0.2 (lzhi) | `lzhiyong-sdk-tools-35.0.2` | `android-sdk-tools-static-aarch64.zip` |
 
 Ein `curl -L` auf diese URLs funktioniert ohne Anmeldung, solange das Repo öffentlich ist.
 
@@ -182,7 +181,7 @@ Umgebungsvariablen des Skripts:
 |---|---|---|
 | `GH_TOKEN` | – (Pflicht) | Token mit Schreibrecht auf `TARGET_REPO` |
 | `TARGET_REPO` | – (Pflicht) | `owner/repo`, in das gespiegelt wird |
-| `COMPONENTS` | `sdk,ndk,cmake,aide,lzhi` | Quellen |
+| `COMPONENTS` | `sdk,ndk,cmake,aide,msmt` | Quellen |
 | `VERSIONS` | leer | Versionsfilter |
 | `VARIANTS` / `AIDE_VARIANTS` / `LZ_VARIANTS` | siehe oben | Varianten je Quelle |
 | `INCLUDE_PRERELEASE` | `false` | Beta/RC mitnehmen |
