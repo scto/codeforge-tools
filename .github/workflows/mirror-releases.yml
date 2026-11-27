@@ -1,9 +1,11 @@
-name: Mirror HomuHomu833/android-sdk-custom/ AndroidIDEOfficial/androidide-tools/ Lzhiyong/android-sdk-tools/ Releases
+name: Mirror HomuHomu833/android-sdk-custom/ AndroidIDEOfficial/androidide-tools/ Lzhiyong/android-sdk-tools/ msmt2018/android-sdk-tools Releases
 
 # Spiegelt Android-Toolchains als Release-Assets in dieses Repo:
 #   sdk, ndk, cmake  HomuHomu833/android-sdk-custom, android-ndk-custom, cmake-custom
 #   aide             AndroidIDEOfficial/androidide-tools (Build-/Platform-Tools 33.x/34.x, statisch)
-#   lzhi             Lzhiyong/android-sdk-tools (35.0.2 u. a., statisch, nur Binaries) Läuft manuell und wöchentlich (neue Upstream-Versionen).
+#   lzhi             Lzhiyong/android-sdk-tools (35.0.2 u. a., statisch, nur Binaries)
+#   msmt             msmt2018/android-sdk-tools (platform-tools-<V>: vollständige build-/platform-tools je ABI, mit Jars)
+# Läuft manuell und wöchentlich (neue Upstream-Versionen). Danach wird catalog.json neu erzeugt (schneller SDK-Manager).
 # Idempotent: vorhandene Assets werden übersprungen, ein abgebrochener Lauf kann wiederholt werden.
 # Kein PAT nötig: der Standard-GITHUB_TOKEN darf in das eigene Repo schreiben (contents: write).
 
@@ -11,9 +13,9 @@ on:
   workflow_dispatch:
     inputs:
       components:
-        description: "Komponenten, durch Komma getrennt (sdk, ndk, cmake, aide, lzhi)"
+        description: "Komponenten, durch Komma getrennt (sdk, ndk, cmake, aide, lzhi, msmt)"
         required: true
-        default: "sdk,ndk,cmake,aide,lzhi"
+        default: "sdk,ndk,cmake,aide,lzhi,msmt"
         type: string
       versions:
         description: "Nur diese Release-Namen/Tags, durch Komma getrennt (leer = alle), z. B. r29,3.22.1,37.0.0"
@@ -34,6 +36,11 @@ on:
         description: "Varianten für lzhi (Lzhiyong/android-sdk-tools)"
         required: true
         default: "aarch64,arm"
+        type: string
+      msmt_variants:
+        description: "Varianten für msmt (msmt2018/android-sdk-tools, ABI-Namen)"
+        required: true
+        default: "arm64-v8a,armeabi-v7a"
         type: string
       include_prerelease:
         description: "Auch Beta-/RC-Releases spiegeln (Standard: nein)"
@@ -74,12 +81,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TARGET_REPO: ${{ github.repository }}
           # Bei schedule sind inputs leer -> Standardwerte des Scripts bzw. echter Lauf
-          COMPONENTS: ${{ inputs.components || 'sdk,ndk,cmake,aide,lzhi' }}
+          COMPONENTS: ${{ inputs.components || 'sdk,ndk,cmake,aide,lzhi,msmt' }}
           VERSIONS: ${{ inputs.versions }}
           VARIANTS: ${{ inputs.variants || 'aarch64-linux-android,armv7a-linux-androideabi' }}
           AIDE_VARIANTS: ${{ inputs.aide_variants || 'aarch64,arm' }}
           LZ_VARIANTS: ${{ inputs.lzhi_variants || 'aarch64,arm' }}
+          MS_VARIANTS: ${{ inputs.msmt_variants || 'arm64-v8a,armeabi-v7a' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
           INCLUDE_PRERELEASE: ${{ github.event_name == 'workflow_dispatch' && inputs.include_prerelease || 'false' }}
         run: bash scripts/mirror-releases.sh
+
+      # Katalog auch nach einem Teilfehler neu bauen (neue Releases sollen sofort im SDK-Manager stehen)
+      - name: Katalog aktualisieren
+        if: ${{ !cancelled() && (github.event_name != 'workflow_dispatch' || !inputs.dry_run) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPO: ${{ github.repository }}
+        run: bash scripts/build-catalog.sh --commit

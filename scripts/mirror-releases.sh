@@ -9,6 +9,7 @@
 #   cmake-<Name>                (HomuHomu833/cmake-custom,        z. B. cmake-3.22.1)
 #   androidide-tools-<Tag>      (AndroidIDEOfficial/androidide-tools, z. B. androidide-tools-v34.0.4)
 #   lzhiyong-sdk-tools-<Tag>    (Lzhiyong/android-sdk-tools,      z. B. lzhiyong-sdk-tools-35.0.2)
+#   msmt-<Tag>                  (msmt2018/android-sdk-tools,      z. B. msmt-platform-tools-37.0.3)
 # Assets behalten ihren Namen; zu jedem Asset kommt eine <Name>.sha256-Datei.
 # Gespiegelt werden nur Assets der gewünschten Varianten, nicht die ~100 Varianten je Release
 # (FreeBSD, Windows …). Standard: sdk/ndk/cmake = aarch64-linux-android,armv7a-linux-androideabi; aide/lzhi = aarch64,arm.
@@ -36,11 +37,12 @@ set -euo pipefail
 
 : "${GH_TOKEN:?GH_TOKEN fehlt}"
 : "${TARGET_REPO:?TARGET_REPO fehlt (owner/repo)}"
-COMPONENTS="${COMPONENTS:-sdk,ndk,cmake,aide,lzhi}"
+COMPONENTS="${COMPONENTS:-sdk,ndk,cmake,aide,lzhi,msmt}"
 VERSIONS="${VERSIONS:-}"
 VARIANTS="${VARIANTS:-aarch64-linux-android,armv7a-linux-androideabi}"
 AIDE_VARIANTS="${AIDE_VARIANTS:-aarch64,arm}"
 LZ_VARIANTS="${LZ_VARIANTS:-aarch64,arm}"
+MS_VARIANTS="${MS_VARIANTS:-arm64-v8a,armeabi-v7a}"
 DRY_RUN="${DRY_RUN:-false}"
 FORCE="${FORCE:-false}"
 INCLUDE_PRERELEASE="${INCLUDE_PRERELEASE:-false}"
@@ -51,30 +53,34 @@ die() { echo "::error::$*" >&2; exit 1; }
 
 # ---- Eingaben prüfen (kommen aus Workflow-Eingaben, nie ungeprüft in Shell/Regex) ----
 [[ "$TARGET_REPO" =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || die "Ungültiges TARGET_REPO"
-[[ "$COMPONENTS" =~ ^[a-z]+(,[a-z]+)*$ ]] || die "Ungültige COMPONENTS (erlaubt: sdk,ndk,cmake,aide,lzhi)"
+[[ "$COMPONENTS" =~ ^[a-z]+(,[a-z]+)*$ ]] || die "Ungültige COMPONENTS (erlaubt: sdk,ndk,cmake,aide,lzhi,msmt)"
 [[ -z "$VERSIONS" || "$VERSIONS" =~ ^[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*$ ]] || die "Ungültige VERSIONS (nur Release-Namen, Komma-getrennt)"
-for b in VARIANTS AIDE_VARIANTS LZ_VARIANTS; do
+for b in VARIANTS AIDE_VARIANTS LZ_VARIANTS MS_VARIANTS; do
   [[ "${!b}" =~ ^[A-Za-z0-9_.-]+(,[A-Za-z0-9_.-]+)*$ ]] || die "Ungültige $b"
 done
 [[ "$MAX_ASSET_MB" =~ ^[0-9]+$ ]] || die "Ungültiges MAX_ASSET_MB"
 for b in DRY_RUN FORCE INCLUDE_PRERELEASE; do [[ "${!b}" == true || "${!b}" == false ]] || die "$b muss true oder false sein"; done
 
 declare -A UPSTREAM=( [sdk]=HomuHomu833/android-sdk-custom [ndk]=HomuHomu833/android-ndk-custom [cmake]=HomuHomu833/cmake-custom
-                      [aide]=AndroidIDEOfficial/androidide-tools [lzhi]=Lzhiyong/android-sdk-tools )
+                      [aide]=AndroidIDEOfficial/androidide-tools [lzhi]=Lzhiyong/android-sdk-tools
+                      [msmt]=msmt2018/android-sdk-tools )
 declare -A PREFIX=(   [sdk]=android-sdk [ndk]=android-ndk [cmake]=cmake
-                      [aide]=androidide-tools [lzhi]=lzhiyong-sdk-tools )
+                      [aide]=androidide-tools [lzhi]=lzhiyong-sdk-tools [msmt]=msmt )
 # Release-Name für den Ziel-Tag: aus dem Release-Namen (HomuHomu833) oder aus dem Upstream-Tag
-declare -A NAMEFROM=( [sdk]=name [ndk]=name [cmake]=name [aide]=tag [lzhi]=tag )
+declare -A NAMEFROM=( [sdk]=name [ndk]=name [cmake]=name [aide]=tag [lzhi]=tag [msmt]=tag )
 # Nur Upstream-Tags, die passen (aide hat daneben die Releases "sdk" und "jdk-11")
-declare -A TAGRE=(    [aide]='^v[0-9]' )
+# msmt: nur die vollständigen SDK-Pakete (platform-tools-<V>); 33.0.3/34.0.3/35.0.2 sind Lzhiyong-Kopien,
+# sdk-tools-36.1.0 liegt schon als v36.1.0 vor.
+declare -A TAGRE=(    [aide]='^v[0-9]' [msmt]='^platform-tools-[0-9]' )
 
 alt() { tr ',' '\n' <<<"$1" | sed 's/\./\\./g' | paste -sd'|'; }
-variants_of() { case $1 in aide) echo "$AIDE_VARIANTS" ;; lzhi) echo "$LZ_VARIANTS" ;; *) echo "$VARIANTS" ;; esac; }
+variants_of() { case $1 in aide) echo "$AIDE_VARIANTS" ;; lzhi) echo "$LZ_VARIANTS" ;; msmt) echo "$MS_VARIANTS" ;; *) echo "$VARIANTS" ;; esac; }
 # Regex für Asset-Namen je Quelle
 asset_re() {
   case $1 in
     aide) echo "-($(alt "$AIDE_VARIANTS"))\\.tar\\.xz\$" ;;                       # build-tools-34.0.4-aarch64.tar.xz
     lzhi) echo "^android-sdk-tools-static-($(alt "$LZ_VARIANTS"))\\.zip\$" ;;       # android-sdk-tools-static-aarch64.zip
+    msmt) echo "^(build|platform)-tools-[0-9.]+-($(alt "$MS_VARIANTS"))\\.(zip|tar\\.gz)\$" ;; # build-tools-37.0.3-arm64-v8a.zip
     *)    echo "-($(alt "$VARIANTS"))\\.(tar\\.xz|tar\\.gz|zip|7z)\$" ;;          # *-aarch64-linux-android.tar.xz
   esac
 }
@@ -131,7 +137,7 @@ mirror_asset() { # comp upstream_repo upstream_tag target_tag asset size digest
 }
 
 for comp in ${COMPONENTS//,/ }; do
-  [[ -n "${UPSTREAM[$comp]:-}" ]] || die "Unbekannte Komponente '$comp' (erlaubt: sdk, ndk, cmake, aide, lzhi)"
+  [[ -n "${UPSTREAM[$comp]:-}" ]] || die "Unbekannte Komponente '$comp' (erlaubt: sdk, ndk, cmake, aide, lzhi, msmt)"
   repo=${UPSTREAM[$comp]}; vlabel=$(variants_of "$comp"); asset_regex=$(asset_re "$comp"); tag_regex=${TAGRE[$comp]:-.}
   echo "::group::$comp ($repo)"
   releases=$(gh api --paginate "repos/$repo/releases?per_page=100" | jq -s 'add // []') \
@@ -196,7 +202,7 @@ echo "Neu angelegte Releases: $n_rel_new · hochgeladene Assets: $n_up · übers
 if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   {
     echo "## Spiegelung HomuHomu833 → $TARGET_REPO"
-    echo "Varianten (sdk/ndk/cmake): \`$VARIANTS\` · aide/lzhi: \`$AIDE_VARIANTS\` / \`$LZ_VARIANTS\` · Trockenlauf: $DRY_RUN · Neu laden: $FORCE · Beta/RC mitnehmen: $INCLUDE_PRERELEASE"
+    echo "Varianten (sdk/ndk/cmake): \`$VARIANTS\` · aide/lzhi/msmt: \`$AIDE_VARIANTS\` / \`$LZ_VARIANTS\` / \`$MS_VARIANTS\` · Trockenlauf: $DRY_RUN · Neu laden: $FORCE · Beta/RC mitnehmen: $INCLUDE_PRERELEASE"
     echo
     echo "| Komponente | Upstream-Releases | verarbeitet | ohne passendes Asset | Beta/RC übersprungen |"
     echo "|---|---|---|---|---|"

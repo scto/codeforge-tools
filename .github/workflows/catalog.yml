@@ -1,0 +1,30 @@
+name: Katalog (catalog.json) aktualisieren
+
+# catalog.json ist die schnelle Release-Liste für den SDK-Manager von CodeForgeMobile (siehe scripts/build-catalog.sh).
+# Neu gebaut nach jeder Änderung an Releases, nach dem Spiegeln (dort als eigener Schritt), täglich und manuell.
+
+on:
+  release:
+    types: [published, edited, deleted, unpublished]
+  schedule:
+    - cron: "41 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalog
+  cancel-in-progress: false
+
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: catalog.json bauen und committen
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPO: ${{ github.repository }}
+        run: bash scripts/build-catalog.sh --commit
