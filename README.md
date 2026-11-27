@@ -27,7 +27,7 @@ Ein Workflow holt alle passenden Releases der Upstream-Repos und legt sie in die
 | `cmake` | [HomuHomu833/cmake-custom](https://github.com/HomuHomu833/cmake-custom) | `cmake-<Version>` (z. B. `cmake-3.22.1`) | `cmake-aarch64-linux-android.tar.xz` |
 | `aide` | [AndroidIDEOfficial/androidide-tools](https://github.com/AndroidIDEOfficial/androidide-tools) (archiviert) | `androidide-tools-v<Version>` (33.0.1 … 34.0.4) | `build-tools-<V>-{aarch64,arm}.tar.xz`, `platform-tools-<V>-{aarch64,arm}.tar.xz` |
 | `lzhi` | [Lzhiyong/android-sdk-tools](https://github.com/Lzhiyong/android-sdk-tools) | `lzhiyong-sdk-tools-<Version>` (z. B. `…-35.0.2`) | `android-sdk-tools-static-{aarch64,arm}.zip` |
-| `msmt` | [msmt2018/android-sdk-tools](https://github.com/msmt2018/android-sdk-tools) | `msmt-platform-tools-<Version>` (30.0.2 … 37.0.3) | `build-tools-<V>-{arm64-v8a,armeabi-v7a}.zip`, `platform-tools-<V>-{arm64-v8a,armeabi-v7a}.tar.gz` |
+| `msmt` | [msmt2018/android-sdk-tools](https://github.com/msmt2018/android-sdk-tools) | `msmt-platform-tools-<Version>` (28.0.0 … 37.0.3) | `build-tools-<V>-{arm64-v8a,armeabi-v7a}.zip`, `platform-tools-<V>-{arm64-v8a,armeabi-v7a}.tar.gz` |
 
 Asset-Namen bleiben unverändert. Zu jedem Asset liegt eine `<Name>.sha256` im selben Release.
 
