@@ -1,10 +1,11 @@
-name: Mirror nullij Releases
+name: Mirror Releases (nullij, termuxvoid)
 
 # Spiegelt ausgewählte Release-Tags aus einem nullij-Repo in dieses Repo und legt je Datei eine .sha256 an.
 # Nur manuell; Standard ist dry_run. Vorlagen:
 #   nullij/sclrepo                     android-sdk-37.0.0,flutter-sdk,kotlinlsp,v36.1.0
 #   nullij/flutter-sdk-android-arm64   flutter-3.47.8-android-arm64-r1
 #   nullij/android-rust-toolchain      v1.99.1=rust-toolchain-1.99.1
+#   termuxvoid/flutter-termux          3.50.1=flutter-termux-3.50.1  (Termux-Prefix, siehe README)
 
 on:
   workflow_dispatch:
@@ -18,6 +19,7 @@ on:
           - nullij/sclrepo
           - nullij/flutter-sdk-android-arm64
           - nullij/android-rust-toolchain
+          - termuxvoid/flutter-termux
       tags:
         description: "Tags, durch Komma getrennt; quelle=ziel für anderen Ziel-Tag"
         required: true
