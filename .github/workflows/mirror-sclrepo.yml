@@ -1,13 +1,25 @@
-name: Mirror nullij/sclrepo Releases
+name: Mirror nullij Releases
 
-# Spiegelt ausgewählte Release-Tags aus nullij/sclrepo (android-sdk-37.0.0, flutter-sdk, kotlinlsp, v36.1.0)
-# mit gleichem Tag in dieses Repo und legt je Datei eine .sha256 an. Nur manuell; Standard ist dry_run.
+# Spiegelt ausgewählte Release-Tags aus einem nullij-Repo in dieses Repo und legt je Datei eine .sha256 an.
+# Nur manuell; Standard ist dry_run. Vorlagen:
+#   nullij/sclrepo                     android-sdk-37.0.0,flutter-sdk,kotlinlsp,v36.1.0
+#   nullij/flutter-sdk-android-arm64   flutter-3.47.8-android-arm64-r1
+#   nullij/android-rust-toolchain      v1.99.1=rust-toolchain-1.99.1
 
 on:
   workflow_dispatch:
     inputs:
+      source_repo:
+        description: "Quell-Repo"
+        required: true
+        default: "nullij/sclrepo"
+        type: choice
+        options:
+          - nullij/sclrepo
+          - nullij/flutter-sdk-android-arm64
+          - nullij/android-rust-toolchain
       tags:
-        description: "Tags aus nullij/sclrepo, durch Komma getrennt"
+        description: "Tags, durch Komma getrennt; quelle=ziel für anderen Ziel-Tag"
         required: true
         default: "android-sdk-37.0.0,flutter-sdk,kotlinlsp,v36.1.0"
         type: string
@@ -38,6 +50,7 @@ jobs:
       - name: Spiegeln
         env:
           GH_TOKEN: ${{ github.token }}
+          SRC_REPO: ${{ inputs.source_repo }}
           TARGET_REPO: ${{ github.repository }}
           TAGS: ${{ inputs.tags }}
           DRY_RUN: ${{ inputs.dry_run }}

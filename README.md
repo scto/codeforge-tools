@@ -38,7 +38,11 @@ Was die Quellen enthalten (anhand der READMEs, Build-Workflows und je einer Stic
 - **aide:** Stichprobe `v34.0.4`/aarch64: statisch gelinkte Bionic-Binaries samt `d8`, `apksigner` und `lib/`. Gespiegelt werden nur Tags der Form `v<Zahl>`; die Releases `sdk` und `jdk-11` des Repos nicht.
 - **lzhi:** Stichprobe `35.0.2`/aarch64: statisch gelinkte Bionic-Binaries (`aapt`, `aapt2`, `aidl`, `zipalign`, `adb`, `fastboot` …), aber **ohne** `.jar`-Dateien und ohne `source.properties`. Kein vollständiges SDK-Paket; laut Upstream ist nur aarch64 getestet. **Seit 2026-11-27 nicht mehr Standard und die Releases gelöscht** – `msmt` liefert dieselben Versionen vollständig.
 - **msmt:** Fork von Lzhiyong. Die Releases `platform-tools-<V>` sind **vollständige** Google-Pakete: offizielle build-tools/platform-tools (mit `lib/d8.jar`, `apksigner.jar`, `core-lambda-stubs.jar` …), die nativen Programme (`aapt`, `aapt2`, `aidl`, `zipalign`, `dexdump`, `adb`, `fastboot` …) durch statisch gebaute Bionic-Binaries ersetzt (`scripts/package_sdk.py` im Upstream). Gespiegelt werden nur diese Releases und nur `arm64-v8a`/`armeabi-v7a` (x86/x86_64 gibt es upstream auch: Eingabe `msmt_variants`). `33.0.3`/`34.0.3`/`35.0.2` (Lzhiyong-Kopien) und `sdk-tools-36.1.0` (liegt schon als `v36.1.0` vor) werden übersprungen. Lizenz: Apache 2.0.
-- **Nicht aufgenommen:** Repos mit glibc-Binaries (z. B. `nullij/sclrepo`, `soobujmiah/adt`). Sie laufen in Termux nicht nativ.
+- **flutter:** [nullij/flutter-sdk-android-arm64](https://github.com/nullij/flutter-sdk-android-arm64) – Flutter 3.47.8 / Dart 3.13.7 für Android-arm64-Hosts (Termux), baut APKs für `armeabi-v7a`, `arm64-v8a`, `x86_64`. Ein Archiv `flutter-3.47.8-android-arm64-r1.tar.xz` (340 MB, enthält `flutter/`). Gespiegelt unter gleichem Tag.
+- **rust:** [nullij/android-rust-toolchain](https://github.com/nullij/android-rust-toolchain) – Rust 1.99.1 nativ für Android (`rustc`, `cargo`, `rustdoc`, `rustfmt`, `rust-analyzer`, std + rust-src, `libc++_shared.so`), je ABI ein `rust-toolchain-<target>.tar.gz`. Linken braucht `clang` aus Termux. Gespiegelt unter Tag `rust-toolchain-1.99.1` (Upstream `v1.99.1`).
+- Quellen beider Repos liegen unter [`upstream/`](upstream/).
+- **sclrepo:** `nullij/sclrepo` enthält glibc-Binaries (Release `flutter-sdk`: Dart für glibc, Engine nur linux-x64) – in Termux nicht nativ lauffähig; für Flutter `flutter` oben verwenden.
+- **Nicht aufgenommen:** `soobujmiah/adt` (glibc-Binaries).
 
 Ob die Binaries auf einem Gerät laufen, ist nicht getestet.
 
